@@ -34,23 +34,24 @@ uv pip install torch==$TVERSION torchaudio==$TVERSION torchvision torchcodec --i
 #uv pip install setuptools wheel ninja "torch~=$TORCH_VERSION"
 uv pip install --upgrade pip setuptools wheel "torch~=$TORCH_VERSION"
 uv pip install ninja
+uv pip install matrix-nio "torch~=$TORCH_VERSION"
 
 uv pip install -r requirements.txt "torch~=$TORCH_VERSION"
-#uv pip install -r manager_requirements.txt "torch~=$TORCH_VERSION"
+uv pip install -r manager_requirements.txt "torch~=$TORCH_VERSION"
 
 ## 安装 flash_attn2
-uv pip install flash-attn --no-build-isolation "torch~=$TORCH_VERSION"
+uv pip install flash-attn --no-cache-dir --no-build-isolation "torch~=$TORCH_VERSION"
+
 ## 安装flash_attn3
-#git clone https://github.com/Dao-AILab/flash-attention.git .deps/flash-attention
-#cd .deps/flash-attention/hopper
+#git clone https://github.com/Dao-AILab/flash-attention.git deps/flash-attention
+#cd deps/flash-attention/hopper
 #CFLAGS="-O2" CXXFLAGS="-O2" python setup.py install
 #cd ../../../
 
 
 git clone https://github.com/thu-ml/SageAttention.git deps/SageAttention
 cd deps/SageAttention/sageattention3_blackwell
-export CFLAGS="-O2" CXXFLAGS="-O2" NVCC_APPEND_FLAGS="--threads 4" MAX_JOBS=32 # Optional
-python setup.py install
+CFLAGS="-O2" CXXFLAGS="-O2" NVCC_APPEND_FLAGS="--threads 4" MAX_JOBS=32  python setup.py install
 
 ## 安装sglang最新
 #cd deps/sglang

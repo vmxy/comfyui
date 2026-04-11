@@ -24,11 +24,14 @@ try:
     SAGE_ATTENTION_IS_AVAILABLE = True
 except ImportError as e:
     if model_management.sage_attention_enabled():
-        if e.name == "sageattention":
-            logging.error(f"\n\nTo use the `--use-sage-attention` feature, the `sageattention` package must be installed first.\ncommand:\n\t{sys.executable} -m pip install sageattention")
-        else:
-            raise e
-        exit(-1)
+        try:
+            from sageattn3 import sageattn3_blackwell
+        except ImportError:
+            if e.name == "sageattention":
+                logging.error(f"\n\nTo use the `--use-sage-attention` feature, the `sageattention` package must be installed first.\ncommand:\n\t{sys.executable} -m pip install sageattention")
+            else:
+                raise e
+            exit(-1)
 
 SAGE_ATTENTION3_IS_AVAILABLE = False
 try:
@@ -724,7 +727,10 @@ optimized_attention = attention_basic
 
 if model_management.sage_attention_enabled():
     logging.info("Using sage attention")
-    optimized_attention = attention_sage
+    if SAGE_ATTENTION3_IS_AVAILABLE:
+        optimized_attention = attention3_sage
+    else:
+        optimized_attention = attention_sage
 elif model_management.xformers_enabled():
     logging.info("Using xformers attention")
     optimized_attention = attention_xformers
