@@ -27,3 +27,5 @@ uv.lock
 .deps/
 deps/
 models/
+*.safetensors
+*.pt
