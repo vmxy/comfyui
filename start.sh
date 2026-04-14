@@ -1,6 +1,8 @@
 
+source .venv/bin/activate
 
-CUDA_VISIBLE_DEVICES=0 
+export CUDA_VISIBLE_DEVICES=0 
+export CUDNN_V8_API_ENABLED=1
 
 #--use-flash-attention
 #--use-sage-attention
@@ -17,6 +19,6 @@ python main.py \
 	--supports-fp8-compute \
 	--cache-lru 32 \
 	--normalvram \
-	--fast \
+	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
 	--use-sage-attention \
 	--mmap-torch-files 
