@@ -37,7 +37,7 @@ echo "PORT=$PORT DEVICES=$DEVICE"
 #--use-flash-attention
 #--use-sage-attention
 python main.py \
-	--cuda-device 0 \
+	--cuda-device $DEVICE \
 	--port $PORT \
 	--listen 0.0.0.0 \
 	--enable-manager \
@@ -51,4 +51,7 @@ python main.py \
 	--normalvram \
 	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
 	--use-sage-attention \
-	--mmap-torch-files 
+	--mmap-torch-files \
+        --reserve-vram 1 \
+        --async-offload 
+

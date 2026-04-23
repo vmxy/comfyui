@@ -31,14 +31,17 @@ export CUDA_VISIBLE_DEVICES=$DEVICE
 export CUDNN_V8_API_ENABLED=1
 
 let PORT=9901+DEVICE
-USER="user-$DEVICE"
-
+USER="user_$PORT"
+HOME="/data/ai/comfyui-user"
+DB="sqlite:///$HOME/user/$USER.db"
 echo "PORT=$PORT DEVICES=$DEVICE USRER=$USER"
+echo "home=$HOME"
+echo "database=$DB"
 
 #--use-flash-attention
 #--use-sage-attention
 python main.py \
-	--cuda-device 0 \
+	--cuda-device $DEVICE \
 	--port $PORT \
 	--listen 0.0.0.0 \
 	--enable-manager \
@@ -54,7 +57,9 @@ python main.py \
 	--use-sage-attention \
 	--mmap-torch-files \
         --multi-user \
-	--database-url "./user/$USER.db"	\
+	--database-url "$DB"	\
 	--reserve-vram 1 \
 	--async-offload \
-	--base-directory "/data/ai/comfyui-user" 
+	--base-directory $HOME \
+	--output-directory /data/share/comfyui-output
+
