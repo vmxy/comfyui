@@ -7,6 +7,7 @@ sudo apt install -y \
   libavutil-dev \
   libswscale-dev \
   libswresample-dev \
+  ffmpeg \
   pkg-config
 
 #安装 OpenMPI   tensorrt_llm 内部使用 mpi4py 来进行多 GPU 通信或分布式计算
@@ -15,7 +16,8 @@ sudo apt-get install libopenmpi-dev openmpi-bin
 ## --python=3.12 torch=2.9 有flash-attn=2.8
 ## uv venv --python 3.12 .venv
 uv venv --python 3.12 .venv #3.10
-export LD_PRELOAD=~/.local/share/uv/python/cpython-3.12-linux-x86_64-gnu/lib/libpython3.12.so.1.0
+#export LD_PRELOAD=~/.local/share/uv/python/cpython-3.12-linux-x86_64-gnu/lib/libpython3.12.so.1.0
+export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0
 TORCH_VERSION=2.9.1 # $env:TORCH_VERSION=2.9.1 set TORCH_VERSION=2.9.1
 BUILD_CUDA=cu130
 mkdir -p deps
@@ -32,12 +34,14 @@ TVERSION=${TORCH_VERSION}+${BUILD_CUDA}
 uv pip install torch==$TVERSION torchaudio==$TVERSION torchvision torchcodec --index-url https://mirrors.nju.edu.cn/pytorch/whl/${BUILD_CUDA}   --index-strategy unsafe-best-match
 
 #uv pip install setuptools wheel ninja "torch~=$TORCH_VERSION"
-uv pip install --upgrade pip setuptools wheel "torch~=$TORCH_VERSION"
-uv pip install ninja
+uv pip install --upgrade pip setuptools wheel ninja "torch~=$TORCH_VERSION"
 uv pip install matrix-nio "torch~=$TORCH_VERSION"
 
 uv pip install -r requirements.txt "torch~=$TORCH_VERSION"
 uv pip install -r manager_requirements.txt "torch~=$TORCH_VERSION"
+# 下面是插件的
+#uv pip install opencv-python imageio-ffmpeg gguf scikit-image piexif segment_anything  "torch~=$TORCH_VERSION"
+#uv pip install git+https://github.com/facebookresearch/sam2
 
 ## 安装 flash_attn2
 uv pip install flash-attn --no-cache-dir --no-build-isolation "torch~=$TORCH_VERSION"

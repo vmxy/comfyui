@@ -31,8 +31,9 @@ export CUDA_VISIBLE_DEVICES=$DEVICE
 export CUDNN_V8_API_ENABLED=1
 
 let PORT=9901+DEVICE
+USER="user-$DEVICE"
 
-echo "PORT=$PORT DEVICES=$DEVICE"
+echo "PORT=$PORT DEVICES=$DEVICE USRER=$USER"
 
 #--use-flash-attention
 #--use-sage-attention
@@ -51,4 +52,9 @@ python main.py \
 	--normalvram \
 	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
 	--use-sage-attention \
-	--mmap-torch-files 
+	--mmap-torch-files \
+        --multi-user \
+	--database-url "./user/$USER.db"	\
+	--reserve-vram 1 \
+	--async-offload \
+	--base-directory "/data/ai/comfyui-user" 
