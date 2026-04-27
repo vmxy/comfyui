@@ -26,11 +26,15 @@ fi
 # 激活虚拟环境
 source .venv/bin/activate
 
+export HTTP_PROXY="http://127.0.0.1:1080"
+export HTTPS_PROXY="http://127.0.0.1:1080"
+
 # 设置 CUDA 设备
 export CUDA_VISIBLE_DEVICES=$DEVICE
 export CUDNN_V8_API_ENABLED=1
+export UV_LINK_MODE=copy
 
-let PORT=9901+DEVICE
+let PORT=9900+DEVICE
 USER="user_$PORT"
 HOME="/data/ai/comfyui-user"
 DB="sqlite:///$HOME/user/$USER.db"
@@ -58,8 +62,8 @@ python main.py \
 	--mmap-torch-files \
         --multi-user \
 	--database-url "$DB"	\
-	--reserve-vram 1 \
+	--reserve-vram 0.5 \
 	--async-offload \
 	--base-directory $HOME \
-	--output-directory /data/share/comfyui-output
+	--output-directory /data/share/comfyui-output-$USER
 

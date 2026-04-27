@@ -8,6 +8,7 @@ sudo apt install -y \
   libswscale-dev \
   libswresample-dev \
   ffmpeg \
+  sox  portaudio19-dev \
   pkg-config
 
 #安装 OpenMPI   tensorrt_llm 内部使用 mpi4py 来进行多 GPU 通信或分布式计算
@@ -31,12 +32,13 @@ source .venv/bin/activate
 #uv pip install torch torchaudio torchvision "torch~=$TORCH_VERSION"  --index-url https://mirrors.nju.edu.cn/pytorch/whl/cu130
 #https://download.pytorch.org/whl/cu130 torchvision==0.24.0+${BUILD_CUDA}
 TVERSION=${TORCH_VERSION}+${BUILD_CUDA}
-uv pip install torch==$TVERSION torchaudio==$TVERSION torchvision torchcodec --index-url https://mirrors.nju.edu.cn/pytorch/whl/${BUILD_CUDA}   --index-strategy unsafe-best-match
+uv pip install torch==$TVERSION torchaudio==$TVERSION torchvision torchcodec  torch-complex --index-url https://mirrors.nju.edu.cn/pytorch/whl/${BUILD_CUDA}   --index-strategy unsafe-best-match
 
 #uv pip install setuptools wheel ninja "torch~=$TORCH_VERSION"
 uv pip install --upgrade pip setuptools wheel ninja "torch~=$TORCH_VERSION"
 uv pip install matrix-nio "torch~=$TORCH_VERSION"
-
+uv pip install sounddevice easydict pytorch_lightning "torch~=$TORCH_VERSION"
+uv pip install silentcipher  --no-deps "torch~=$TORCH_VERSION"
 uv pip install -r requirements.txt "torch~=$TORCH_VERSION"
 uv pip install -r manager_requirements.txt "torch~=$TORCH_VERSION"
 # 下面是插件的
