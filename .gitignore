@@ -26,6 +26,5 @@ filtered-openapi.yaml
 uv.lock
 .deps/
 deps/
-models/
 *.safetensors
 *.pt
