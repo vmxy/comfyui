@@ -44,6 +44,8 @@ echo "database=$DB"
 
 #--use-flash-attention
 #--use-sage-attention
+# --cache-lru 3
+#
 python main.py \
 	--cuda-device $DEVICE \
 	--port $PORT \
@@ -55,11 +57,11 @@ python main.py \
 	--bf16-vae \
 	--fp8_e4m3fn-text-enc \
 	--supports-fp8-compute \
-	--cache-lru 32 \
 	--normalvram \
 	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
-	--use-sage-attention \
+	--use-flash-attention \
 	--mmap-torch-files \
+	--cache-lru 2 \
         --multi-user \
 	--database-url "$DB"	\
 	--reserve-vram 0.5 \

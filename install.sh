@@ -32,8 +32,8 @@ source .venv/bin/activate
 #uv pip install torch torchaudio torchvision "torch~=$TORCH_VERSION"  --index-url https://mirrors.nju.edu.cn/pytorch/whl/cu130
 #https://download.pytorch.org/whl/cu130 torchvision==0.24.0+${BUILD_CUDA}
 TVERSION=${TORCH_VERSION}+${BUILD_CUDA}
-uv pip install torch==$TVERSION torchaudio==$TVERSION torchvision torchcodec  torch-complex --index-url https://mirrors.nju.edu.cn/pytorch/whl/${BUILD_CUDA}   --index-strategy unsafe-best-match
-
+uv pip install torch==$TVERSION torchaudio==$TVERSION torchvision torchcodec  --index-url https://mirrors.nju.edu.cn/pytorch/whl/${BUILD_CUDA}   --index-strategy unsafe-best-match
+uv pip install torch-complex "torch~=$TORCH_VERSION"
 #uv pip install setuptools wheel ninja "torch~=$TORCH_VERSION"
 uv pip install --upgrade pip setuptools wheel ninja "torch~=$TORCH_VERSION"
 uv pip install matrix-nio "torch~=$TORCH_VERSION"
