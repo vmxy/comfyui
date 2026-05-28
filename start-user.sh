@@ -1,10 +1,15 @@
 #!/bin/bash
 
+CACHE=1
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
     case $1 in
         --device)
             DEVICE="$2"
+            shift 2
+            ;;
+	--cache)
+            CACHE=0
             shift 2
             ;;
         *)
@@ -23,6 +28,13 @@ if [ -z "$DEVICE" ]; then
     exit 1
 fi
 
+if [ "$CACHE" -eq 1 ]; then
+    echo "缓存已启用"
+    CACHE_ARGS="--cache-lru 16"
+else
+    echo "缓存已禁用"
+    CACHE_ARGS=""--cache-none
+fi
 # 激活虚拟环境
 source .venv/bin/activate
 
@@ -33,6 +45,9 @@ export HTTPS_PROXY="http://127.0.0.1:1080"
 export CUDA_VISIBLE_DEVICES=$DEVICE
 export CUDNN_V8_API_ENABLED=1
 export UV_LINK_MODE=copy
+
+
+TORCHINDUCTOR_FREEZING=1
 
 let PORT=9900+DEVICE
 USER="user_$PORT"
@@ -45,23 +60,26 @@ echo "database=$DB"
 #--use-flash-attention
 #--use-sage-attention
 # --cache-lru 3
-#
+#--force-fp16 
+#--bf16-vae
+#--cache-lru 2
 python main.py \
 	--cuda-device $DEVICE \
 	--port $PORT \
 	--listen 0.0.0.0 \
 	--enable-manager \
 	--enable-cors-header \
-	--force-fp16 \
 	--fp8_e4m3fn-unet \
-	--bf16-vae \
 	--fp8_e4m3fn-text-enc \
 	--supports-fp8-compute \
+	--force-channels-last \
+        --enable-triton-backend \
+        --enable-dynamic-vram \
 	--normalvram \
 	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
-	--use-flash-attention \
+	--use-sage-attention \
 	--mmap-torch-files \
-	--cache-lru 2 \
+	$CACHE_ARGS \
         --multi-user \
 	--database-url "$DB"	\
 	--reserve-vram 0.5 \
