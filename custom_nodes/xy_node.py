@@ -19,8 +19,8 @@ class IsNotEmptyNode:
     
     def is_not_empty(self, value=None):
         """检查值是否非空（反向检查）"""
-        check_node = CheckEmptyNode()
-        is_empty = check_node.check_empty(value)[0]
+        check_node = IsEmptyNode()
+        is_empty = check_node.is_empty(value)[0]
         return (not is_empty,)
 
 
@@ -92,8 +92,8 @@ class SwitchNode:
     def INPUT_TYPES(cls):
         return { 
             "optional": {  # 关键：if_true 和 if_false 放在 optional 中
-                "if_true": ("*", {"default": None, "forceInput": True}),
-                "if_false": ("*", {"default": None, "forceInput": True}),
+                "in_true": ("*", {"default": None, "forceInput": True}),
+                "in_false": ("*", {"default": None, "forceInput": True}),
             },
              "required": {
                 "condition": ("BOOLEAN", {"default": False, "forceInput": True}),
@@ -105,9 +105,9 @@ class SwitchNode:
     FUNCTION = "switch"
     CATEGORY = "xy/tool"
     
-    def switch(self, condition, if_true=None, if_false=None):
-        """如果 condition 为 True，返回 if_true，否则返回 if_false"""
-        return (if_true if condition else if_false,)
+    def switch(self, condition, in_true=None, in_false=None):
+        """如果 condition 为 True，返回 in_true，否则返回 in_false"""
+        return (in_true if condition else in_false,)
 
 class NullNode:
     @classmethod

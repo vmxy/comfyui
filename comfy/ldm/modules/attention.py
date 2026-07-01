@@ -745,8 +745,10 @@ if model_management.sage_attention_enabled():
     logging.info("Using sage attention")
     if SAGE_ATTENTION3_IS_AVAILABLE:
         optimized_attention = attention3_sage
+        print(f"use sage3 attention")
     else:
         optimized_attention = attention_sage
+        print(f"use sage2 attention")
 elif model_management.flash_attention_enabled():
     logging.info("Using Flash Attention")
     optimized_attention = attention_flash

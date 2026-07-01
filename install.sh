@@ -57,8 +57,15 @@ uv pip install flash-attn --no-cache-dir --no-build-isolation "torch~=$TORCH_VER
 
 
 git clone https://github.com/thu-ml/SageAttention.git deps/SageAttention
+#安装 sage2
+cd deps/SageAttention/
+CFLAGS="-O2" CXXFLAGS="-O2" NVCC_APPEND_FLAGS="--threads 4" MAX_JOBS=32  python setup.py install
+cd ../../
+
+#安装 sage3
 cd deps/SageAttention/sageattention3_blackwell
 CFLAGS="-O2" CXXFLAGS="-O2" NVCC_APPEND_FLAGS="--threads 4" MAX_JOBS=32  python setup.py install
+cd ../../../
 
 ## 安装sglang最新
 #cd deps/sglang

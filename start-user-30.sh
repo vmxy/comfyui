@@ -30,7 +30,7 @@ fi
 
 if [ "$CACHE" -eq 1 ]; then
     echo "缓存已启用"
-    CACHE_ARGS="--cache-lru 4"
+    CACHE_ARGS="--cache-lru 1"
 else
     echo "缓存已禁用"
     CACHE_ARGS="--cache-none"
@@ -60,6 +60,7 @@ echo "database=$DB"
 
 #--use-flash-attention
 #--use-sage-attention
+#--use-pytorch-cross-attention
 # --cache-lru 3
 #--force-fp16 
 #--bf16-vae
@@ -77,7 +78,7 @@ python main.py \
         --enable-triton-backend \
         --enable-dynamic-vram \
 	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
-	--use-sage-attention \
+	--use-pytorch-cross-attention \
 	--mmap-torch-files \
 	$CACHE_ARGS \
         --multi-user \
