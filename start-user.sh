@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#network_mode = personal_cloud
+echo "请修改 user/__manager/config.ini network_mode = personal_cloud"
+
 CACHE=0
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
@@ -38,6 +41,7 @@ fi
 # 激活虚拟环境
 source .venv/bin/activate
 
+export UV_CACHE_DIR="/data/ai-code/uv-cache"
 export HTTP_PROXY="http://127.0.0.1:1080"
 export HTTPS_PROXY="http://127.0.0.1:1080"
 export HF_ENDPOINT="https://hf-mirror.com"
@@ -45,7 +49,8 @@ export HF_ENDPOINT="https://hf-mirror.com"
 # 设置 CUDA 设备
 export CUDA_VISIBLE_DEVICES=$DEVICE
 export CUDNN_V8_API_ENABLED=1
-export UV_LINK_MODE=copy
+#export UV_LINK_MODE=copy
+
 
 
 TORCHINDUCTOR_FREEZING=1
@@ -54,16 +59,22 @@ let PORT=9900+DEVICE
 USER="user_$PORT"
 HOME="/data/ai/comfyui-user"
 DB="sqlite:///$HOME/user/$USER.db"
-echo "PORT=$PORT DEVICES=$DEVICE USRER=$USER"
-echo "home=$HOME"
-echo "database=$DB"
+Output="/data/share/$(basename "$PWD")-$PORT"
+echo "PORT=$PORT DEVICES=$DEVICE"
+mkdir -p $Output
 
+#echo "home=$HOME"
+#echo "database=$DB"
+echo "output=$Output"
 #--use-flash-attention
 #--use-sage-attention
 # --cache-lru 3
 #--force-fp16 
 #--bf16-vae
 #--cache-lru 2
+#--base-directory $HOME 
+#--multi-user 
+#--database-url "$DB"   
 python main.py \
 	--cuda-device $DEVICE \
 	--port $PORT \
@@ -74,16 +85,13 @@ python main.py \
 	--bf16-text-enc \
 	--supports-fp8-compute \
 	--force-channels-last \
-        --enable-triton-backend \
-        --enable-dynamic-vram \
+    --enable-triton-backend \
+    --enable-dynamic-vram \
 	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
 	--use-sage-attention \
 	--mmap-torch-files \
 	$CACHE_ARGS \
-        --multi-user \
-	--database-url "$DB"	\
 	--reserve-vram 0.5 \
 	--async-offload \
-	--base-directory $HOME \
-	--output-directory /data/share/comfyui-output-$USER
+	--output-directory $Output
 

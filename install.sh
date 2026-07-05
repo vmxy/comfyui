@@ -1,18 +1,7 @@
 #!/bin/bash
 
-sudo apt install -y \
-  libavdevice-dev \
-  libavformat-dev \
-  libavcodec-dev \
-  libavutil-dev \
-  libswscale-dev \
-  libswresample-dev \
-  ffmpeg \
-  sox  portaudio19-dev \
-  pkg-config
+export UV_CACHE_DIR="/data/ai-code/uv-cache"
 
-#安装 OpenMPI   tensorrt_llm 内部使用 mpi4py 来进行多 GPU 通信或分布式计算
-sudo apt-get install libopenmpi-dev openmpi-bin
 ## --python=3.11 torch=2.8 有flash-attn=2.8
 ## --python=3.12 torch=2.9 有flash-attn=2.8
 ## uv venv --python 3.12 .venv
@@ -21,9 +10,9 @@ uv venv --python 3.12 .venv #3.10
 export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0
 TORCH_VERSION=2.11.0 # $env:TORCH_VERSION=2.9.1 set TORCH_VERSION=2.9.1
 BUILD_CUDA=cu130
-mkdir -p deps
 
-sed -i 's/VIRTUAL_ENV_PROMPT=.*/VIRTUAL_ENV_PROMPT="comfyui"/g' .venv/bin/activate
+
+sed -i 's/VIRTUAL_ENV_PROMPT=.*/VIRTUAL_ENV_PROMPT="comfy"/g' .venv/bin/activate
 source .venv/bin/activate
 
 # wan2.2-animate使用
@@ -46,39 +35,17 @@ uv pip install -r manager_requirements.txt "torch~=$TORCH_VERSION"
 #uv pip install opencv-python imageio-ffmpeg gguf scikit-image piexif segment_anything  "torch~=$TORCH_VERSION"
 #uv pip install git+https://github.com/facebookresearch/sam2
 
-## 安装 flash_attn2
-uv pip install flash-attn --no-cache-dir --no-build-isolation "torch~=$TORCH_VERSION"
-
-## 安装flash_attn3
-#git clone https://github.com/Dao-AILab/flash-attention.git deps/flash-attention
-#cd deps/flash-attention/hopper
-#CFLAGS="-O2" CXXFLAGS="-O2" python setup.py install
-#cd ../../../
-
-
-git clone https://github.com/thu-ml/SageAttention.git deps/SageAttention
-#安装 sage2
-cd deps/SageAttention/
-CFLAGS="-O2" CXXFLAGS="-O2" NVCC_APPEND_FLAGS="--threads 4" MAX_JOBS=32  python setup.py install
-cd ../../
-
-#安装 sage3
-cd deps/SageAttention/sageattention3_blackwell
-CFLAGS="-O2" CXXFLAGS="-O2" NVCC_APPEND_FLAGS="--threads 4" MAX_JOBS=32  python setup.py install
-cd ../../../
-
-## 安装sglang最新
-#cd deps/sglang
-#uv pip install -e "python"
-#cd ../../
-
-## 安装sglang
-## uv pip install sglang "torch~=$TORCH_VERSION"
-#uv pip install transformer_engine "torch~=$TORCH_VERSION"
-
-
-
-
+rm -rf models
+ln -s /data/ai/ai-model/comfyui/ ./models
+rm -rf user/default
+ln -s /data/ai-code/comfy-workflow ./user/default
+rm -rf input
+ln -s /data/ai-code/comfy-input ./input
 
 uv pip show torch torchaudio torchvision flash-attn sageattention3
 
+
+# 先卸载当前版本
+pip uninstall kornia kornia_rs
+# 安装不带 Rust 扩展的旧版本
+pip install kornia==0.6.12  # 或更早版本

@@ -38,6 +38,7 @@ fi
 # 激活虚拟环境
 source .venv/bin/activate
 
+export UV_CACHE_DIR="/data/ai-code/uv-cache"
 export HTTP_PROXY="http://127.0.0.1:1080"
 export HTTPS_PROXY="http://127.0.0.1:1080"
 export HF_ENDPOINT="https://hf-mirror.com"
