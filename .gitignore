@@ -29,5 +29,5 @@ deps/
 *.pt
 .comfy_environment
 .fuse_*
-.swp
+*.swp
 input
