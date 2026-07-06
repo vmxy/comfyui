@@ -37,13 +37,14 @@ uv pip install -r manager_requirements.txt "torch~=$TORCH_VERSION"
 
 rm -rf models
 ln -s /data/ai/ai-model/comfyui/ ./models
+mkdir -p user/default
 rm -rf user/default
 ln -s /data/ai-code/comfy-workflow ./user/default
 rm -rf input
 ln -s /data/ai-code/comfy-input ./input
 
 uv pip show torch torchaudio torchvision flash-attn sageattention3
-
+uv install svgwrite pandas
 
 # 先卸载当前版本
 pip uninstall kornia kornia_rs

@@ -59,7 +59,7 @@ let PORT=9900+DEVICE
 USER="user_$PORT"
 HOME="/data/ai/comfyui-user"
 DB="sqlite:///$HOME/user/$USER.db"
-Output="/data/share/$(basename "$PWD")-$PORT"
+Output="/data/share/$(basename "$PWD")"
 echo "PORT=$PORT DEVICES=$DEVICE"
 mkdir -p $Output
 
