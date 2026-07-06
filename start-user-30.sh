@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#network_mode = personal_cloud
+echo "请修改 user/__manager/config.ini network_mode = personal_cloud"
+
 CACHE=0
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
@@ -8,7 +11,7 @@ while [[ $# -gt 0 ]]; do
             DEVICE="$2"
             shift 2
             ;;
-	--cache)
+    --cache)
             CACHE=1
             shift 1
             ;;
@@ -30,7 +33,7 @@ fi
 
 if [ "$CACHE" -eq 1 ]; then
     echo "缓存已启用"
-    CACHE_ARGS="--cache-lru 1"
+    CACHE_ARGS="--cache-lru 4"
 else
     echo "缓存已禁用"
     CACHE_ARGS="--cache-none"
@@ -46,7 +49,8 @@ export HF_ENDPOINT="https://hf-mirror.com"
 # 设置 CUDA 设备
 export CUDA_VISIBLE_DEVICES=$DEVICE
 export CUDNN_V8_API_ENABLED=1
-export UV_LINK_MODE=copy
+#export UV_LINK_MODE=copy
+
 
 
 TORCHINDUCTOR_FREEZING=1
@@ -55,10 +59,13 @@ let PORT=9900+DEVICE
 USER="user_$PORT"
 HOME="/data/ai/comfyui-user"
 DB="sqlite:///$HOME/user/$USER.db"
-echo "PORT=$PORT DEVICES=$DEVICE USRER=$USER"
-echo "home=$HOME"
-echo "database=$DB"
+Output="/data/share/$(basename "$PWD")-$PORT"
+echo "PORT=$PORT DEVICES=$DEVICE"
+mkdir -p $Output
 
+#echo "home=$HOME"
+#echo "database=$DB"
+echo "output=$Output"
 #--use-flash-attention
 #--use-sage-attention
 #--use-pytorch-cross-attention
@@ -66,26 +73,26 @@ echo "database=$DB"
 #--force-fp16 
 #--bf16-vae
 #--cache-lru 2
+#--base-directory $HOME 
+#--multi-user 
+#--database-url "$DB"   
 python main.py \
-	--cuda-device $DEVICE \
-	--port $PORT \
-	--listen 0.0.0.0 \
-	--enable-manager \
-	--enable-cors-header \
-	--bf16-unet \
-	--bf16-text-enc \
-	--supports-fp8-compute \
-	--force-channels-last \
-        --enable-triton-backend \
-        --enable-dynamic-vram \
-	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
-	--use-pytorch-cross-attention \
-	--mmap-torch-files \
-	$CACHE_ARGS \
-        --multi-user \
-	--database-url "$DB"	\
-	--reserve-vram 0.5 \
-	--async-offload \
-	--base-directory $HOME \
-	--output-directory /data/share/comfyui-output-$USER
+    --cuda-device $DEVICE \
+    --port $PORT \
+    --listen 0.0.0.0 \
+    --enable-manager \
+    --enable-cors-header \
+    --bf16-unet \
+    --bf16-text-enc \
+    --supports-fp8-compute \
+    --force-channels-last \
+    --enable-triton-backend \
+    --enable-dynamic-vram \
+    --fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
+    --use-pytorch-cross-attention \
+    --mmap-torch-files \
+    $CACHE_ARGS \
+    --reserve-vram 0.5 \
+    --async-offload \
+    --output-directory $Output
 

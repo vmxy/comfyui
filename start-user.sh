@@ -68,6 +68,7 @@ mkdir -p $Output
 echo "output=$Output"
 #--use-flash-attention
 #--use-sage-attention
+#--use-pytorch-cross-attention
 # --cache-lru 3
 #--force-fp16 
 #--bf16-vae
