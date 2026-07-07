@@ -87,15 +87,16 @@ class IsEmptyNode:
         return (is_empty,)
 
 
+
 class SwitchNode:
     @classmethod
     def INPUT_TYPES(cls):
-        return { 
-            "optional": {  # 关键：if_true 和 if_false 放在 optional 中
+        return {
+            "optional": {
                 "in_true": ("*", {"default": None, "forceInput": True}),
                 "in_false": ("*", {"default": None, "forceInput": True}),
             },
-             "required": {
+            "required": {
                 "condition": ("BOOLEAN", {"default": False, "forceInput": True}),
             },
         }
@@ -106,8 +107,18 @@ class SwitchNode:
     CATEGORY = "xy/tool"
     
     def switch(self, condition, in_true=None, in_false=None):
-        """如果 condition 为 True，返回 in_true，否则返回 in_false"""
         return (in_true if condition else in_false,)
+    
+    @classmethod
+    def get_output_types(cls, input_types, input_values):
+        """根据输入值推断输出类型"""
+        if "in_true" in input_values and input_values["in_true"] is not None:
+            return (type(input_values["in_true"]).__name__,)
+        elif "in_false" in input_values and input_values["in_false"] is not None:
+            return (type(input_values["in_false"]).__name__,)
+        return ("*",)
+        
+
 
 class NullNode:
     @classmethod
