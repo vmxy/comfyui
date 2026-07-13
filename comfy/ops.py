@@ -76,8 +76,6 @@ except:
 
 cast_to = comfy.model_management.cast_to #TODO: remove once no more references
 
-STREAM_PIN_BUFFER_HEADROOM = 8 * 1024 * 1024
-
 def cast_to_input(weight, input, non_blocking=False, copy=True):
     return comfy.model_management.cast_to(weight, input.dtype, input.device, non_blocking=non_blocking, copy=copy)
 
@@ -94,9 +92,6 @@ def cast_modules_with_vbar(comfy_modules, dtype, device, bias_dtype, non_blockin
     offload_stream = None
     cast_buffer = None
     cast_buffer_offset = 0
-    stream_pin_hostbuf = None
-    stream_pin_offset = 0
-    stream_pin_queue = []
 
     def ensure_offload_stream(module, required_size, check_largest):
         nonlocal offload_stream
@@ -129,22 +124,6 @@ def cast_modules_with_vbar(comfy_modules, dtype, device, bias_dtype, non_blockin
         buffer = comfy_aimdo.torch.aimdo_to_tensor(cast_buffer.get(buffer_size, cast_buffer_offset), device)
         cast_buffer_offset += buffer_size
         return buffer
-
-    def get_stream_pin_buffer_offset(buffer_size):
-        nonlocal stream_pin_hostbuf
-        nonlocal stream_pin_offset
-
-        if buffer_size == 0 or offload_stream is None:
-            return None
-
-        if stream_pin_hostbuf is None:
-            stream_pin_hostbuf = comfy.model_management.get_pin_buffer(offload_stream)
-            if stream_pin_hostbuf is None:
-                return None
-
-        offset = stream_pin_offset
-        stream_pin_offset += buffer_size
-        return offset
 
     for s in comfy_modules:
         signature = comfy_aimdo.model_vbar.vbar_fault(s._v)
@@ -184,33 +163,29 @@ def cast_modules_with_vbar(comfy_modules, dtype, device, bias_dtype, non_blockin
         if xfer_dest is None:
             xfer_dest = get_cast_buffer(dest_size)
 
-        def cast_maybe_lowvram_patch(xfer_source, xfer_dest, stream):
+        def cast_maybe_lowvram_patch(xfer_source, xfer_dest, stream, xfer_dest2=None):
             if xfer_source is not None:
                 if getattr(xfer_source, "is_lowvram_patch", False):
-                    xfer_source.prepare(xfer_dest, stream, copy=True, commit=False)
-                else:
-                    comfy.model_management.cast_to_gathered(xfer_source, xfer_dest, non_blocking=non_blocking, stream=stream)
+                    if xfer_dest is not None:
+                        xfer_source.prepare(xfer_dest, stream, copy=True, commit=False)
+                        xfer_source = [ xfer_dest ]
+                        xfer_dest = xfer_dest2
+                        xfer_dest2 = None
+                    elif xfer_dest2 is not None:
+                        xfer_source.prepare(xfer_dest2, stream, copy=True, commit=False)
+                        return
+                    else:
+                        return
+                comfy.model_management.cast_to_gathered(xfer_source, xfer_dest, non_blocking=non_blocking, stream=stream, r2=xfer_dest2)
 
         def handle_pin(m, pin, source, dest, subset="weights", size=None):
             if pin is not None:
                 cast_maybe_lowvram_patch([pin], dest, offload_stream)
                 return
-            if signature is None:
+            if signature is None or args.high_ram:
                 comfy.pinned_memory.pin_memory(m, subset=subset, size=size)
                 pin = comfy.pinned_memory.get_pin(m, subset=subset)
-                if pin is not None:
-                    if isinstance(source, list):
-                        comfy.model_management.cast_to_gathered(source, pin, non_blocking=non_blocking, stream=offload_stream, r2=dest)
-                    else:
-                        cast_maybe_lowvram_patch(source, pin, None)
-                        cast_maybe_lowvram_patch([ pin ], dest, offload_stream)
-                    return
-            if pin is None:
-                pin_offset = get_stream_pin_buffer_offset(size)
-                if pin_offset is not None:
-                    stream_pin_queue.append((source, pin_offset, size, dest))
-                    return
-            cast_maybe_lowvram_patch(source, dest, offload_stream)
+            cast_maybe_lowvram_patch(source, pin, offload_stream, xfer_dest2=dest)
 
         handle_pin(s, pin, xfer_source, xfer_dest, size=dest_size)
 
@@ -231,23 +206,6 @@ def cast_modules_with_vbar(comfy_modules, dtype, device, bias_dtype, non_blockin
         prefetch["cast_geometry"] = cast_geometry
         prefetch["needs_cast"] = needs_cast
         s._prefetch = prefetch
-
-    if stream_pin_offset > 0:
-        if stream_pin_hostbuf.size < stream_pin_offset:
-            if not comfy.model_management.resize_pin_buffer(stream_pin_hostbuf, stream_pin_offset + STREAM_PIN_BUFFER_HEADROOM):
-                for xfer_source, _, _, xfer_dest in stream_pin_queue:
-                    cast_maybe_lowvram_patch(xfer_source, xfer_dest, offload_stream)
-                return offload_stream
-        stream_pin_tensor = comfy_aimdo.torch.hostbuf_to_tensor(stream_pin_hostbuf)
-        stream_pin_tensor.untyped_storage()._comfy_hostbuf = stream_pin_hostbuf
-        for xfer_source, pin_offset, pin_size, xfer_dest in stream_pin_queue:
-            pin = stream_pin_tensor[pin_offset:pin_offset + pin_size]
-            if isinstance(xfer_source, list):
-                comfy.model_management.cast_to_gathered(xfer_source, pin, non_blocking=non_blocking, stream=offload_stream, r2=xfer_dest)
-            else:
-                cast_maybe_lowvram_patch(xfer_source, pin, None)
-                comfy.model_management.cast_to_gathered([ pin ], xfer_dest, non_blocking=non_blocking, stream=offload_stream)
-        stream_pin_hostbuf._comfy_event = offload_stream.record_event()
 
     return offload_stream
 
@@ -300,7 +258,7 @@ def resolve_cast_module_with_vbar(s, dtype, device, bias_dtype, compute_dtype, w
             if (want_requant and len(fns) == 0 or update_weight):
                 seed = comfy.utils.string_to_seed(s.seed_key)
                 if isinstance(orig, QuantizedTensor):
-                    y = QuantizedTensor.from_float(x, s.layout_type, scale="recalculate", stochastic_rounding=seed)
+                    y = orig.requantize_from_float(x, scale="recalculate", stochastic_rounding=seed)
                 else:
                     y = comfy.float.stochastic_rounding(x, orig.dtype, seed=seed)
             if want_requant and len(fns) == 0:
@@ -343,21 +301,21 @@ def cast_bias_weight(s, input=None, dtype=None, device=None, bias_dtype=None, of
 
     non_blocking = comfy.model_management.device_supports_non_blocking(device)
 
-    if hasattr(s, "_v"):
+    if hasattr(s, "_v") and comfy.model_management.is_device_cpu(device):
 
         #vbar doesn't support CPU weights, but some custom nodes have weird paths
         #that might switch the layer to the CPU and expect it to work. We have to take
         #a clone conservatively as we are mmapped and some SFT files are packed misaligned
         #If you are a custom node author reading this, please move your layer to the GPU
         #or declare your ModelPatcher as CPU in the first place.
-        if comfy.model_management.is_device_cpu(device):
-            materialize_meta_param(s, ["weight", "bias"])
-            weight = s.weight.to(dtype=dtype, copy=True)
-            if isinstance(weight, QuantizedTensor):
-                weight = weight.dequantize()
-            bias = s.bias.to(dtype=bias_dtype, copy=True) if s.bias is not None else None
-            return format_return((weight, bias, (None, None, None)), offloadable)
+        materialize_meta_param(s, ["weight", "bias"])
+        weight = s.weight.to(dtype=dtype, copy=True)
+        if isinstance(weight, QuantizedTensor):
+            weight = weight.dequantize()
+        bias = s.bias.to(dtype=bias_dtype, copy=True) if s.bias is not None else None
+        return format_return((weight, bias, (None, None, None)), offloadable)
 
+    elif hasattr(s, "_v") and s.weight.device != device:
         prefetched = hasattr(s, "_prefetch")
         offload_stream = None
         offload_device = None
@@ -1133,6 +1091,34 @@ def _load_quantized_module(module, super_load, state_dict, prefix, local_metadat
             if ts is None or bs is None:
                 raise ValueError(f"Missing NVFP4 scales for layer {layer_name}")
             scales = {"scale": ts, "block_scale": bs}
+        elif module.quant_format == "int8_tensorwise":
+            scale = pop_scale("weight_scale")
+            if scale is None:
+                raise ValueError(f"Missing INT8 weight scale for layer {layer_name}")
+            scales = {"scale": scale}
+            params_conf = layer_conf.get("params", {})
+            if not isinstance(params_conf, dict):
+                params_conf = {}
+            if layer_conf.get("convrot", params_conf.get("convrot", False)):
+                scales["convrot"] = True
+                scales["convrot_groupsize"] = int(
+                    layer_conf.get("convrot_groupsize", params_conf.get("convrot_groupsize", 256))
+                )
+        elif module.quant_format == "convrot_w4a4":
+            scale = pop_scale("weight_scale")
+            if scale is None:
+                raise ValueError(f"Missing ConvRot W4A4 weight scale for layer {layer_name}")
+            params_conf = layer_conf.get("params", {})
+            if not isinstance(params_conf, dict):
+                params_conf = {}
+            scales = {
+                "scale": scale,
+                "convrot_groupsize": int(
+                    layer_conf.get("convrot_groupsize", params_conf.get("convrot_groupsize", 256))
+                ),
+                "quant_group_size": 64,
+                "linear_dtype": layer_conf.get("linear_dtype", params_conf.get("linear_dtype", "int4")),
+            }
         else:
             raise ValueError(f"Unsupported quantization format: {module.quant_format}")
 
@@ -1175,6 +1161,15 @@ def _quantized_weight_state_dict(module, sd, prefix, extra_quant_conf=None, extr
         quant_conf = {"format": module.quant_format}
         if getattr(module, '_full_precision_mm_config', False):
             quant_conf["full_precision_matrix_mult"] = True
+        params = getattr(module.weight, "_params", None)
+        if module.quant_format == "int8_tensorwise" and getattr(params, "convrot", False):
+            quant_conf["convrot"] = True
+            quant_conf["convrot_groupsize"] = getattr(params, "convrot_groupsize", 256)
+        elif module.quant_format == "convrot_w4a4":
+            quant_conf["convrot_groupsize"] = getattr(params, "convrot_groupsize", 256)
+            linear_dtype = getattr(params, "linear_dtype", "int4")
+            if linear_dtype != "int4":
+                quant_conf["linear_dtype"] = linear_dtype
         if extra_quant_conf:
             quant_conf.update(extra_quant_conf)
         sd[f"{prefix}comfy_quant"] = torch.tensor(list(json.dumps(quant_conf).encode("utf-8")), dtype=torch.uint8)
@@ -1227,8 +1222,33 @@ def mixed_precision_ops(quant_config={}, compute_dtype=torch.bfloat16, full_prec
             def _forward(self, input, weight, bias):
                 return torch.nn.functional.linear(input, weight, bias)
 
-            def forward_comfy_cast_weights(self, input, compute_dtype=None, want_requant=False):
-                weight, bias, offload_stream = cast_bias_weight(self, input, offloadable=True, compute_dtype=compute_dtype, want_requant=want_requant)
+            def forward_comfy_cast_weights(
+                self,
+                input,
+                compute_dtype=None,
+                want_requant=False,
+                weight_only_quant=False,
+            ):
+                if weight_only_quant:
+                    weight, bias, offload_stream = cast_bias_weight(
+                        self,
+                        input=None,
+                        dtype=self.weight.dtype,
+                        device=input.device,
+                        bias_dtype=input.dtype,
+                        offloadable=True,
+                        compute_dtype=compute_dtype,
+                        want_requant=True,
+                    )
+                    weight = weight.to(dtype=input.dtype)
+                else:
+                    weight, bias, offload_stream = cast_bias_weight(
+                        self,
+                        input,
+                        offloadable=True,
+                        compute_dtype=compute_dtype,
+                        want_requant=want_requant,
+                    )
                 x = self._forward(input, weight, bias)
                 uncast_bias_weight(self, weight, bias, offload_stream)
                 return x
@@ -1237,7 +1257,7 @@ def mixed_precision_ops(quant_config={}, compute_dtype=torch.bfloat16, full_prec
                 run_every_op()
 
                 input_shape = input.shape
-                reshaped_3d = False
+                reshaped_nd = False
                 #If cast needs to apply lora, it should be done in the compute dtype
                 compute_dtype = input.dtype
 
@@ -1247,9 +1267,10 @@ def mixed_precision_ops(quant_config={}, compute_dtype=torch.bfloat16, full_prec
                     not getattr(self, 'comfy_force_cast_weights', False) and
                     len(self.weight_function) == 0 and len(self.bias_function) == 0
                 )
+                quantize_input = QUANT_ALGOS.get(getattr(self, 'quant_format', None), {}).get("quantize_input", True)
 
                 # Training path: quantized forward with compute_dtype backward via autograd function
-                if (input.requires_grad and _use_quantized):
+                if (input.requires_grad and _use_quantized and quantize_input):
 
                     weight, bias, offload_stream = cast_bias_weight(
                         self,
@@ -1271,25 +1292,31 @@ def mixed_precision_ops(quant_config={}, compute_dtype=torch.bfloat16, full_prec
                     return output
 
                 # Inference path (unchanged)
-                if _use_quantized:
+                if _use_quantized and quantize_input:
 
-                    # Reshape 3D tensors to 2D for quantization (needed for NVFP4 and others)
-                    input_reshaped = input.reshape(-1, input_shape[2]) if input.ndim == 3 else input
+                    # Reshape >=3D tensors to 2D for quantization (needed for NVFP4 and others)
+                    input_reshaped = input.reshape(-1, input_shape[-1]) if input.ndim >= 3 else input
 
                     # Fall back to non-quantized for non-2D tensors
                     if input_reshaped.ndim == 2:
-                        reshaped_3d = input.ndim == 3
+                        reshaped_nd = input.ndim >= 3
                         # dtype is now implicit in the layout class
                         scale = getattr(self, 'input_scale', None)
                         if scale is not None:
                             scale = comfy.model_management.cast_to_device(scale, input.device, None)
                         input = QuantizedTensor.from_float(input_reshaped, self.layout_type, scale=scale)
 
-                output = self.forward_comfy_cast_weights(input, compute_dtype, want_requant=isinstance(input, QuantizedTensor))
+                weight_only_quant = _use_quantized and not quantize_input and isinstance(self.weight, QuantizedTensor)
+                output = self.forward_comfy_cast_weights(
+                    input,
+                    compute_dtype,
+                    want_requant=isinstance(input, QuantizedTensor),
+                    weight_only_quant=weight_only_quant,
+                )
 
-                # Reshape output back to 3D if input was 3D
-                if reshaped_3d:
-                    output = output.reshape((input_shape[0], input_shape[1], self.weight.shape[0]))
+                # Reshape output back to original rank if input was >2D
+                if reshaped_nd:
+                    output = output.reshape((*input_shape[:-1], self.weight.shape[0]))
 
                 return output
 
@@ -1301,8 +1328,7 @@ def mixed_precision_ops(quant_config={}, compute_dtype=torch.bfloat16, full_prec
 
             def set_weight(self, weight, inplace_update=False, seed=None, return_weight=False, **kwargs):
                 if getattr(self, 'layout_type', None) is not None:
-                    # dtype is now implicit in the layout class
-                    weight = QuantizedTensor.from_float(weight, self.layout_type, scale="recalculate", stochastic_rounding=seed, inplace_ops=True).to(self.weight.dtype)
+                    weight = self.weight.requantize_from_float(weight, scale="recalculate", stochastic_rounding=seed, inplace_ops=True).to(self.weight.dtype)
                 else:
                     weight = weight.to(self.weight.dtype)
                 if return_weight:
@@ -1424,6 +1450,12 @@ def mixed_precision_ops(quant_config={}, compute_dtype=torch.bfloat16, full_prec
                 }
                 if hasattr(params, "block_scale"): # NVFP4
                     kwargs["block_scale"] = params.block_scale[i]
+                if hasattr(params, "quant_group_size"):
+                    kwargs["quant_group_size"] = params.quant_group_size
+                if hasattr(params, "convrot_groupsize"):
+                    kwargs["convrot_groupsize"] = params.convrot_groupsize
+                if hasattr(params, "linear_dtype"):
+                    kwargs["linear_dtype"] = params.linear_dtype
                 return QuantizedTensor(weight._qdata[i], weight._layout_cls, type(params)(**kwargs))
 
             def state_dict(self, *args, destination=None, prefix="", **kwargs):
