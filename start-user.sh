@@ -4,6 +4,7 @@
 echo "请修改 user/__manager/config.ini network_mode = personal_cloud"
 
 CACHE=0
+PORT=9900
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -11,6 +12,10 @@ while [[ $# -gt 0 ]]; do
             DEVICE="$2"
             shift 2
             ;;
+	--port)
+	    PORT="$2"
+	    shift 2
+	    ;;
 	--cache)
             CACHE=1
             shift 1
@@ -47,6 +52,7 @@ export HTTPS_PROXY="http://127.0.0.1:1080"
 export HF_ENDPOINT="https://hf-mirror.com"
 
 # 设置 CUDA 设备
+#DEVICE="0,1"
 export CUDA_VISIBLE_DEVICES=$DEVICE
 export CUDNN_V8_API_ENABLED=1
 #export UV_LINK_MODE=copy
@@ -55,7 +61,7 @@ export CUDNN_V8_API_ENABLED=1
 
 TORCHINDUCTOR_FREEZING=1
 
-let PORT=9900+DEVICE
+#let PORT=9900+DEVICE
 USER="user_$PORT"
 HOME="/data/ai/comfyui-user"
 DB="sqlite:///$HOME/user/$USER.db"
@@ -76,6 +82,7 @@ echo "output=$Output"
 #--base-directory $HOME 
 #--multi-user 
 #--database-url "$DB"   
+# --fast fp16_accumulation fp8_matrix_mult cublas_ops autotune
 python main.py \
 	--cuda-device $DEVICE \
 	--port $PORT \
@@ -88,7 +95,7 @@ python main.py \
 	--force-channels-last \
     --enable-triton-backend \
     --enable-dynamic-vram \
-	--fast fp16_accumulation fp8_matrix_mult cublas_ops autotune \
+	--fast fp16_accumulation fp8_matrix_mult  cublas_ops autotune \
 	--use-sage-attention \
 	--mmap-torch-files \
 	$CACHE_ARGS \
