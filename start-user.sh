@@ -63,10 +63,10 @@ TORCHINDUCTOR_FREEZING=1
 
 #let PORT=9900+DEVICE
 USER="user_$PORT"
-HOME="/data/ai/comfyui-user"
+HOME=$(pwd)
 DB="sqlite:///$HOME/user/$USER.db"
 Output="/data/share/$(basename "$PWD")"
-echo "PORT=$PORT DEVICES=$DEVICE"
+echo "PORT=$PORT DEVICES=$DEVICE Home=$HOME"
 mkdir -p $Output
 
 #echo "home=$HOME"
@@ -101,5 +101,6 @@ python main.py \
 	$CACHE_ARGS \
 	--reserve-vram 0.5 \
 	--async-offload \
+	--database-url "$DB" \
 	--output-directory $Output
 

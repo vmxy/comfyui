@@ -31,3 +31,7 @@ deps/
 .fuse_*
 *.swp
 input
+.cache/
+.nv/
+.triton/
+
