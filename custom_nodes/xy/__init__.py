@@ -1,10 +1,11 @@
 # 导入 xy 和 image 两个子模块的映射
 from .xy import NODE_CLASS_MAPPINGS as xy_mappings, NODE_DISPLAY_NAME_MAPPINGS as xy_display
-from .image import NODE_CLASS_MAPPINGS as image_mappings, NODE_DISPLAY_NAME_MAPPINGS as image_display
+from .msr import NODE_CLASS_MAPPINGS as msr_mappings, NODE_DISPLAY_NAME_MAPPINGS as msr_display
+from .video import NODE_CLASS_MAPPINGS as video_mappings, NODE_DISPLAY_NAME_MAPPINGS as video_display
 
 # 合并两个模块的映射字典
-NODE_CLASS_MAPPINGS = {**xy_mappings, **image_mappings}
-NODE_DISPLAY_NAME_MAPPINGS = {**xy_display, **image_display}
+NODE_CLASS_MAPPINGS = {**xy_mappings, **msr_mappings, **video_mappings}
+NODE_DISPLAY_NAME_MAPPINGS = {**xy_display, **msr_display, **video_display}
 
 # 声明模块导出的公共接口
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
