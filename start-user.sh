@@ -38,7 +38,8 @@ fi
 
 if [ "$CACHE" -eq 1 ]; then
     echo "缓存已启用"
-    CACHE_ARGS="--cache-lru 1"
+    #CACHE_ARGS="--cache-lru 1"
+    CACHE_ARGS="--cache-ram 40"
 else
     echo "缓存已禁用"
     CACHE_ARGS="--cache-none"
@@ -93,8 +94,8 @@ python main.py \
 	--bf16-text-enc \
 	--supports-fp8-compute \
 	--force-channels-last \
-    --enable-triton-backend \
-    --enable-dynamic-vram \
+        --enable-triton-backend \
+    	--enable-dynamic-vram \
 	--fast fp16_accumulation fp8_matrix_mult  cublas_ops autotune \
 	--use-sage-attention \
 	--mmap-torch-files \
