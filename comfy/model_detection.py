@@ -359,6 +359,35 @@ def detect_unet_config(state_dict, key_prefix, metadata=None):
         # PixArt diffusers
         return None
 
+    if '{}video_patch_proj.weight'.format(key_prefix) in state_dict_keys and '{}audio_patch_proj.weight'.format(key_prefix) in state_dict_keys: # MiniMax H3
+        dit_config = {}
+        dit_config["image_model"] = "minimax_h3"
+        dit_config["num_layers"] = count_blocks(state_dict_keys, '{}blocks.'.format(key_prefix) + '{}.')
+        dit_config["token_refiner_num_layers"] = count_blocks(state_dict_keys, '{}token_refiner.blocks.'.format(key_prefix) + '{}.')
+        dit_config["hidden_size"] = state_dict['{}video_patch_proj.weight'.format(key_prefix)].shape[0]
+        dit_config["latents_dim"] = state_dict['{}final_layer.video_out.weight'.format(key_prefix)].shape[0] // 4  # patch 1x2x2
+        dit_config["audio_latents_dim"] = state_dict['{}final_layer.audio_out.weight'.format(key_prefix)].shape[0]
+        dit_config["attention_head_dim"] = state_dict['{}blocks.0.attn.q_norm.weight'.format(key_prefix)].shape[0]
+        qkv = state_dict['{}blocks.0.attn.qkv_proj.weight'.format(key_prefix)]
+        dit_config["num_attention_heads"] = qkv.shape[0] // (3 * dit_config["attention_head_dim"])
+        dit_config["ffn_hidden_size"] = state_dict['{}blocks.0.mlp.fc1.weight'.format(key_prefix)].shape[0] // 2
+        dit_config["text_dim"] = state_dict['{}condition_proj.weight'.format(key_prefix)].shape[1]
+        table_key = '{}adaln_t_table'.format(key_prefix)
+        if table_key in state_dict_keys:
+            # adaln shipped over a precomputed curve basis: the adaln linears span a small shared basis of the time-embedding curve (no time embedder)
+            table = state_dict[table_key].shape  # [grid, k]
+            dit_config["adaln_curve_grid"] = table[0]
+            dit_config["time_embed_dim"] = table[1]
+        else:
+            te = state_dict['{}time_embedder.proj_in.weight'.format(key_prefix)]
+            dit_config["timestep_input_dim"] = te.shape[1]
+            dit_config["time_embed_hidden_size"] = te.shape[0]
+            dit_config["time_embed_dim"] = state_dict['{}time_embedder.proj_out.weight'.format(key_prefix)].shape[0]
+        dit_config["rope_inv_freq_len"] = state_dict['{}rope.inv_freq'.format(key_prefix)].shape[0]
+        if metadata is not None and "config" in metadata:
+            dit_config.update(json.loads(metadata["config"]).get("transformer", {}))
+        return dit_config
+
     if '{}adaln_single.emb.timestep_embedder.linear_1.bias'.format(key_prefix) in state_dict_keys: #Lightricks ltxv
         dit_config = {}
         dit_config["image_model"] = "ltxav" if f'{key_prefix}audio_adaln_single.linear.weight' in state_dict_keys else "ltxv"
@@ -884,6 +913,13 @@ def detect_unet_config(state_dict, key_prefix, metadata=None):
             "selected_layer_index": selected_layer_index,
         }
 
+    if '{}txt_norm.weight'.format(key_prefix) in state_dict_keys and '{}proj_out.weight'.format(key_prefix) in state_dict_keys and state_dict['{}txt_norm.weight'.format(key_prefix)].shape[0] == 2560 and state_dict['{}proj_out.weight'.format(key_prefix)].shape[0] == 128:  # Mage-Flow (Qwen Image txt_norm/proj_out are 3584/64)
+        dit_config = {}
+        dit_config["image_model"] = "mage_flow"
+        dit_config["in_channels"] = 128
+        dit_config["num_layers"] = count_blocks(state_dict_keys, '{}transformer_blocks.'.format(key_prefix) + '{}.')
+        return dit_config
+
     if '{}txt_norm.weight'.format(key_prefix) in state_dict_keys:  # Qwen Image
         dit_config = {}
         dit_config["image_model"] = "qwen_image"
@@ -1057,6 +1093,25 @@ def detect_unet_config(state_dict, key_prefix, metadata=None):
             if 'detector.backbone.vision_backbone.propagation_convs.0.conv_1x1.weight' in state_dict_keys:
                 dit_config["image_model"] = "SAM31"
             return dit_config
+
+    if (
+        '{}double_blocks.0.attn.img_attn_qkv.weight'.format(key_prefix) in state_dict_keys
+        and '{}double_blocks.0.attn.img_attn_q_norm.weight'.format(key_prefix) in state_dict_keys
+        and '{}condition_embedder.time_embedder.linear_1.weight'.format(key_prefix) in state_dict_keys
+        and '{}img_in.weight'.format(key_prefix) in state_dict_keys
+        and len(state_dict['{}img_in.weight'.format(key_prefix)].shape) == 5
+    ):
+        img_in = state_dict['{}img_in.weight'.format(key_prefix)]
+        head_dim = state_dict['{}double_blocks.0.attn.img_attn_q_norm.weight'.format(key_prefix)].shape[0]
+        return {
+            "image_model": "joyimage",
+            "in_channels": img_in.shape[1],
+            "hidden_size": img_in.shape[0],
+            "patch_size": list(img_in.shape[2:]),
+            "num_layers": count_blocks(state_dict_keys, '{}double_blocks.'.format(key_prefix) + '{}.'),
+            "num_attention_heads": img_in.shape[0] // head_dim,
+            "text_dim": 4096,
+        }
 
     if '{}input_blocks.0.0.weight'.format(key_prefix) not in state_dict_keys:
         return None
