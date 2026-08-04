@@ -192,6 +192,24 @@ class GetItem:
         return ("*",)
     
 
+class BasenameNode:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return { 
+            "required": {
+                "path": ("STRING", {"default": None, "forceInput": true}),
+            },
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("name",)
+    FUNCTION = "handle"
+    CATEGORY = "xy/tool"
+    
+    def handle(self, path):
+        return (os.path.basename(path))
+
+
 # 节点映射字典
 NODE_CLASS_MAPPINGS = {
     "XIsEmpty": IsEmptyNode,
@@ -199,6 +217,7 @@ NODE_CLASS_MAPPINGS = {
     "XSwitch": SwitchNode,
     "XNull": NullNode,
     "XGetItem": GetItem,
+    "XBasename": BasenameNode,
 }
 
 # 节点显示名称映射
@@ -208,4 +227,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "XSwitch": "XSwitch",
     "XNull": "XNull XNone",
     "XGetItem": "XGet Item",
+    "XBasename": "XBasename",
 }

@@ -67,8 +67,48 @@ class MSRNode:
         image_array = np.array(pil_image)
         if image_array.shape[1] == target_size[0] and image_array.shape[0] == target_size[1]:
             return np.ascontiguousarray(image_array)
-        return cv2.resize(image_array, target_size, interpolation=cv2.INTER_LANCZOS4)
+        #return cv2.resize(image_array, target_size, interpolation=cv2.INTER_LANCZOS4)
+         # 使用新的resize方法，保持宽高比并裁剪
+        return MSRNode._resize_with_crop(image_array, target_size)
 
+    @staticmethod
+    def _resize_with_crop(image_array, target_size):
+        """
+        保持宽高比resize，然后中心裁剪到目标尺寸
+        
+        Args:
+            image_array: numpy数组格式的图像 (H, W, C)
+            target_size: 目标尺寸 (width, height)
+        
+        Returns:
+            裁剪后的图像 (height, width, C)
+        """
+        target_w, target_h = target_size
+        h, w = image_array.shape[:2]
+        
+        # 计算缩放比例，保持宽高比
+        target_ratio = target_w / target_h
+        src_ratio = w / h
+        
+        if src_ratio > target_ratio:
+            # 原图更宽 → 按高度缩放，宽度会超出
+            new_h = target_h
+            new_w = int(target_h * src_ratio)
+        else:
+            # 原图更高或相等 → 按宽度缩放，高度会超出
+            new_w = target_w
+            new_h = int(target_w / src_ratio)
+        
+        # resize到中间尺寸（保持宽高比）
+        resized = cv2.resize(image_array, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+        
+        # 中心裁剪到目标尺寸
+        start_x = (new_w - target_w) // 2
+        start_y = (new_h - target_h) // 2
+        cropped = resized[start_y:start_y + target_h, start_x:start_x + target_w]
+        
+        return np.ascontiguousarray(cropped)
+        
     @staticmethod
     def _expand_frames(images, frame_count):
         base_count = frame_count // len(images)
