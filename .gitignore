@@ -35,3 +35,4 @@ input
 .nv/
 .triton/
 __pycache__/
+.config/

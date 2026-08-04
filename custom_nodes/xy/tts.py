@@ -15,7 +15,7 @@ class SplitSpeaker:
                 		"placeholder": "说话文本:格式: [speaker_x]: xxx 格式"
                 }),
                 "index": ("INT", {
-										"default": 0,
+						"default": 0,
                 		"placeholder": "说话文本:格式: [speaker_x]: xxx 格式"
                 })
             },
