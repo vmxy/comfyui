@@ -34,6 +34,7 @@ uv pip install -r manager_requirements.txt "torch~=$TORCH_VERSION"
 # 下面是插件的
 #uv pip install opencv-python imageio-ffmpeg gguf scikit-image piexif segment_anything  "torch~=$TORCH_VERSION"
 #uv pip install git+https://github.com/facebookresearch/sam2
+uv pip install opencv-python imageio-ffmpeg PyOpenGL PyOpenGL_accelerate "torch~=$TORCH_VERSION"
 
 rm -rf models
 ln -s /data/ai/ai-model/comfyui/ ./models
