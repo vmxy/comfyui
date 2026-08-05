@@ -197,7 +197,7 @@ class BasenameNode:
     def INPUT_TYPES(cls):
         return { 
             "required": {
-                "path": ("STRING", {"default": None, "forceInput": true}),
+                "path": ("STRING", {"default": None, "forceInput": True}),
             },
         }
     
