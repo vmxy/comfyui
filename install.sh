@@ -43,10 +43,10 @@ ln -s /data/ai-code/comfy-workflow ./user/default
 rm -rf input
 ln -s /data/ai-code/comfy-input ./input
 
-uv pip show torch torchaudio torchvision flash-attn sageattention3
+uv pip show torch torchaudio torchvision flash-attn sageattention sageattn3
 uv install svgwrite pandas
 
 # 先卸载当前版本
-pip uninstall kornia kornia_rs
+uv pip uninstall kornia kornia_rs
 # 安装不带 Rust 扩展的旧版本
-pip install kornia==0.6.12  # 或更早版本
+uv pip install kornia==0.6.12  # 或更早版本
