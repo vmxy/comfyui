@@ -15,12 +15,10 @@ from .sub_quadratic_attention import efficient_dot_product_attention
 
 from comfy import model_management
 from .attention_tool import is_fp8_supported
+
 if model_management.xformers_enabled():
     import xformers
     import xformers.ops
-
-
-logging.getLogger("sageattention").setLevel(logging.ERROR)
 
 
 SAGE_ATTENTION_IS_AVAILABLE = False
