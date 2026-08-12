@@ -36,3 +36,4 @@ input
 .triton/
 __pycache__/
 .config/
+.local/
