@@ -38,7 +38,7 @@ fi
 
 if [ "$CACHE" -eq 1 ]; then
     echo "缓存已启用"
-    CACHE_ARGS="--cache-lru 4 --cache-ram 40"
+    CACHE_ARGS="--cache-lru 4"
     #CACHE_ARGS="--cache-ram 40"
 else
     echo "缓存已禁用"

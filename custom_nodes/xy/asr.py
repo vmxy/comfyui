@@ -33,6 +33,11 @@ import folder_paths
 # ----------------------------------------------------------------------
 MODEL_LIST = [
     {
+        "name": "Fun-ASR-MLT-Nano",
+        "model_id": "FunAudioLLM/Fun-ASR-MLT-Nano-2512",
+        "description": "Fun-ASR MLT Nano 多语言轻量级模型",
+    },
+    {
         "name": "paraformer-zh",
         "model_id": "iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
         "description": "Paraformer 中文大模型",
@@ -51,11 +56,6 @@ MODEL_LIST = [
         "name": "paraformer-zh-vad-punc",
         "model_id": "iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
         "description": "Paraformer 中文标点模型",
-    },
-    {
-        "name": "Fun-ASR-MLT-Nano",
-        "model_id": "FunAudioLLM/Fun-ASR-MLT-Nano-2512",
-        "description": "Fun-ASR MLT Nano 多语言轻量级模型",
     },
     {
         "name": "SenseVoiceSmall",
@@ -506,8 +506,8 @@ class XFunASR:
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING", "DICT",)
-    RETURN_NAMES = ("text", "sentence", "srt", "map")
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("text", "sentence", "srt")
     FUNCTION = "run"
     CATEGORY = "xy/audio"
 
@@ -632,6 +632,7 @@ class XFunASR:
         info = res[0]
         # ("text", "text_cn", "text", "srt", "map")
         # 输出结果
+        texts = []
         sentences = []
         srts = []
         speaker_map = {}
@@ -648,6 +649,7 @@ class XFunASR:
                 continue
             idx = idx + 1
 
+            texts.append(text)
             sentences.append(f"[{speaker}] {text}")
 
             srts.append(f"{idx}")
@@ -662,10 +664,12 @@ class XFunASR:
             # 格式化输出
             #print(f"[{start_time:.1f}s - {end_time:.1f}s] {speaker}: {text}")
         
+        text = "\n".join(texts)
         sentence = "\n".join(sentences)
         srt_text = "\n".join(srts)
         #print(f"keys = {info.keys()} {info['key']} {info['label']}")
-        return (info["text"], sentence, srt_text, speaker_map)
+        #info["text"]
+        return (text, sentence, srt_text)
 
 
 # ----------------------------------------------------------------------
