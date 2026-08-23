@@ -37,3 +37,4 @@ input
 __pycache__/
 .config/
 .local/
+.modelscope/

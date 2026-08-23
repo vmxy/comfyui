@@ -50,7 +50,7 @@ source .venv/bin/activate
 export UV_CACHE_DIR="/data/ai-code/uv-cache"
 export HTTP_PROXY="http://127.0.0.1:1080"
 export HTTPS_PROXY="http://127.0.0.1:1080"
-export HF_ENDPOINT="https://hf-mirror.com"
+#export HF_ENDPOINT="https://hf-mirror.com"
 
 # 设置 CUDA 设备
 #DEVICE="0,1"

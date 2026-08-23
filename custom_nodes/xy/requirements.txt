@@ -2,3 +2,6 @@ opencv-python
 imageio-ffmpeg
 word2number
 openai
+funasr 
+modelscope 
+huggingface_hub
