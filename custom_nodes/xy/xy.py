@@ -156,9 +156,9 @@ class GetItem:
         # 处理各种可索引类型
         if array is None:
             return (None,)
-        print(f"test type = {type(array)}")  # 应该是 <class 'list'>
-        print(f"locals_list={len(array)}")
-        print(f"view: {array}")
+        #print(f"test type = {type(array)}")  # 应该是 <class 'list'>
+        #print(f"locals_list={len(array)}")
+        #print(f"view: {array}")
         # 支持元组、列表、字符串
         try:
             if isinstance(array, (tuple, list)):

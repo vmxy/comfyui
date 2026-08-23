@@ -1,4 +1,5 @@
 #from comfy_api.latest import io
+import random
 
 def get_item(array, index):
     # 处理各种可索引类型
@@ -10,14 +11,16 @@ def get_item(array, index):
     # 支持元组、列表、字符串
     try:
         if isinstance(array, (tuple, list)):
+            max_size = len(array)
             # 如果索引超出范围，返回 None 或最后一个元素
-            if index >= len(array):
-                return array[-1] if len(array) > 0 else ""
+            if index >= max_size:
+                return array[random.randrange(0, max_size)] if max_size > 0 else ""
             return array[index]
         elif isinstance(array, str):
+            max_size = len(array)
             # 字符串按字符取
-            if index >= len(array):
-                return array[-1] if len(array) > 0 else ""
+            if index >= max_size:
+                return array[random.randrange(0, max_size)] if max_size > 0 else ""
             return array[index]
         else:
             # 不支持的类型，直接返回原值
