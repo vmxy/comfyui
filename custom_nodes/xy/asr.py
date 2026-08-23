@@ -507,7 +507,7 @@ class XFunASR:
         }
 
     RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("text", "sentence", "srt")
+    RETURN_NAMES = ("text", "text_speaker", "text_asr")
     FUNCTION = "run"
     CATEGORY = "xy/audio"
 
