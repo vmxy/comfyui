@@ -5,9 +5,9 @@ def get_item(array, index):
     # 处理各种可索引类型
     if array is None:
         return (None,)
-    print(f"test type = {type(array)}")  # 应该是 <class 'list'>
-    print(f"locals_list={len(array)}")
-    print(f"view: {array}")
+    #print(f"test type = {type(array)}")  # 应该是 <class 'list'>
+    print(f"locals prompts length={len(array)}")
+    #print(f"view: {array}")
     # 支持元组、列表、字符串
     try:
         if isinstance(array, (tuple, list)):
@@ -97,7 +97,8 @@ class PromptEncode:
 
     def encode(self, clip, global_prompt, locals_list, index):
         prompt = get_item(locals_list, index)
-        print(f"local prompt={prompt}")
+        print(f"global prompt= {global_prompt}")
+        print(f"local prompt= {prompt}")
         full_prompt = f"{global_prompt}\r\n{prompt}"
         conditioning = clip.encode_from_tokens_scheduled(clip.tokenize(full_prompt))
         return (conditioning, full_prompt) 
