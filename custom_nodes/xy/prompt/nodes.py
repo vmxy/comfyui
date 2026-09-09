@@ -141,6 +141,7 @@ class PromptMerge:
 
     def merge(self, global_prompt, locals_list, index):
         prompt = get_item(locals_list, index)
+        print(f"global prompt= {global_prompt}")
         print(f"local prompt={prompt}")
         full_prompt = f"{global_prompt}\r\n{prompt}"
         return (full_prompt,) 
